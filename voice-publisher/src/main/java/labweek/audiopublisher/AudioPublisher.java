@@ -1,4 +1,4 @@
-package com.comcast.flex;
+package labweek.audiopublisher;
 
 import io.aeron.*;
 import io.aeron.driver.MediaDriver;
@@ -17,13 +17,11 @@ import org.agrona.concurrent.SigInt;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import javax.sound.sampled.*;
-import java.io.ByteArrayInputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.comcast.flex.AudioConstants.*;
 import static io.aeron.samples.SampleConfiguration.FRAGMENT_COUNT_LIMIT;
 import static java.lang.Boolean.TRUE;
 import static javax.sound.sampled.AudioSystem.getMixer;
@@ -60,6 +58,7 @@ public class AudioPublisher
 
         //executor.execute(reporter);
 
+        //looks for system property -Daeron.sample.embeddedMediaDriver=true
         final MediaDriver driver = EMBEDDED_MEDIA_DRIVER ? MediaDriver.launchEmbedded() : null;
 
         final Aeron.Context ctx = new Aeron.Context()
@@ -95,7 +94,8 @@ public class AudioPublisher
                                 .reliable(TRUE)
                                 .controlEndpoint("ec2-34-212-31-216.us-west-2.compute.amazonaws.com:40124")
                                 .controlMode("dynamic")
-                                .endpoint("192.168.0.110:8000")
+                                //.endpoint("192.168.0.110:8000")
+                                .endpoint("0.0.0.0:8000")
                                 .build(),
                         STREAM_ID,
                         image -> System.out.println("client: connected to server"),
@@ -108,7 +108,7 @@ public class AudioPublisher
         {
             executor.execute(
                     () -> {
-                        subscriberLoop(fragmentHandler, FRAGMENT_COUNT_LIMIT, running).accept(subscription);
+                        AudioConstants.subscriberLoop(fragmentHandler, FRAGMENT_COUNT_LIMIT, running).accept(subscription);
                     });
 
             handleAudioInput(publication);
@@ -126,13 +126,14 @@ public class AudioPublisher
         TargetDataLine targetDataLine = getTargetDataLine();
         if (targetDataLine == null) {
             System.err.println("No MIC input available -- SHUT DOWN!");
+            running.set(false);
             return;
         }
 
 
         try {
             int numBytesRead;
-            targetDataLine.open(audioFormat());
+            targetDataLine.open(AudioConstants.audioFormat());
 
             // Begin audio capture.
             targetDataLine.start();
@@ -180,28 +181,30 @@ public class AudioPublisher
         Mixer.Info[] mixers = AudioSystem.getMixerInfo();
         Mixer micMixer;
         TargetDataLine line = null;
-        for (Mixer.Info info : mixers) {
-            System.out.println(info.toString() + " mixer description: " + info.getDescription());
-            if (info.getName().contains("Headset Microphone (Pixel USB-C")) {
-                micMixer = getMixer(info);
-                Line.Info[] lineInfos = micMixer.getTargetLineInfo();
-                if(lineInfos.length >=1 && lineInfos[0].getLineClass().equals(TargetDataLine.class)){//Only prints out info if it is a Microphone
-                    System.out.println("Line Name: " + info.getName());//The name of the AudioDevice
-                    System.out.println("Line Description: " + info.getDescription());//The type of audio device
-                    for (Line.Info lineInfo:lineInfos){
-                        System.out.println ("\t"+"---"+lineInfo);
-                        try {
-                            line = (TargetDataLine) micMixer.getLine(lineInfo);
-                        } catch (LineUnavailableException e) {
-                            e.printStackTrace();
-                            return null;
+        try {
+            for (Mixer.Info info : mixers) {
+                System.out.println(info.toString() + " mixer description: " + info.getDescription());
+                if (info.getName().contains("Pixel USB-C")) {
+                    micMixer = getMixer(info);
+                    Line.Info[] lineInfos = micMixer.getTargetLineInfo();
+                    if (lineInfos.length >= 1 && lineInfos[0].getLineClass().equals(TargetDataLine.class)) {//Only prints out info if it is a Microphone
+                        System.out.println("Line Name: " + info.getName());//The name of the AudioDevice
+                        System.out.println("Line Description: " + info.getDescription());//The type of audio device
+                        for (Line.Info lineInfo : lineInfos) {
+                            System.out.println("\t" + "---" + lineInfo);
+                            try {
+                                line = (TargetDataLine) micMixer.getLine(lineInfo);
+                            } catch (LineUnavailableException e) {
+                                e.printStackTrace();
+                                return null;
+                            }
+                            System.out.println("\t-----" + line);
                         }
-                        System.out.println("\t-----"+line);
                     }
-                } else {
-                    System.out.println("did not have any target line info");
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return line;
     }

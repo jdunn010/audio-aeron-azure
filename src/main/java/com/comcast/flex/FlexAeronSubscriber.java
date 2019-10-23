@@ -46,6 +46,7 @@ public class FlexAeronSubscriber {
             System.out.println("using a standalone media driver");
         }
 
+        String controlEndpoint = System.getProperty("AERON_CONTROL_ENDPOINT");
 
         AtomicBoolean running = new AtomicBoolean(true);
         SigInt.register(() -> {
@@ -60,9 +61,9 @@ public class FlexAeronSubscriber {
                         new ChannelUriStringBuilder()
                                 .media("udp")
                                 .reliable(TRUE)
-                                .controlEndpoint("96.115.215.119:40124")
+                                .controlEndpoint(controlEndpoint + ":40124")
                                 .controlMode("dynamic")
-                                .endpoint("96.115.215.119:40122")
+                                .endpoint(controlEndpoint + ":40122")
                                 .build(),
                         STREAM_ID);
 

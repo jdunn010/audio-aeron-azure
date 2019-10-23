@@ -32,6 +32,11 @@ public class AzureAudioFragmentHandler  implements FragmentHandler {
     static Publication publisher;
     static Aeron aeron;
     static String speechSubscriptionKey = System.getProperty("AZURE_SUBSCRIPTION_KEY");
+    static {
+        if (speechSubscriptionKey == null) {
+            speechSubscriptionKey = System.getenv("AZURE_SUBSCRIPTION_KEY");
+        }
+    }
     static String serviceRegion = "westus";
     private static final IdleStrategy idleStrategy = SampleConfiguration.newIdleStrategy();
     static SpeechConfig config = SpeechConfig.fromSubscription(speechSubscriptionKey, serviceRegion);
