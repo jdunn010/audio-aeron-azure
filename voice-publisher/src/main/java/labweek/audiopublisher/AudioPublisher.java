@@ -48,6 +48,7 @@ public class AudioPublisher
             StreamingPublisher::printRate);
     private static final FragmentHandler fragmentHandler = new FragmentAssembler(AudioPublisher::pongHandler);
 
+    private static final String MIXER_STRING = System.getProperty("mixer.name", "Pixel USB-C");
     public static void main( String[] args )
     {
         System.out.println("Publishing to " + CHANNEL + " on stream id " + STREAM_ID);
@@ -67,7 +68,7 @@ public class AudioPublisher
 
         if (EMBEDDED_MEDIA_DRIVER)
         {
-            System.out.println("embedded media driver launched");
+            System.out.println("embedded media driver launched at aeron.dir=" + driver.aeronDirectoryName());
             ctx.aeronDirectoryName(driver.aeronDirectoryName());
         } else {
             System.out.println("standalone media driver");
@@ -84,6 +85,7 @@ public class AudioPublisher
                                 .media("udp")
                                 .reliable(TRUE)
                                 .endpoint("ec2-34-212-31-216.us-west-2.compute.amazonaws.com:40123")
+                                //.endpoint("192.168.0.104:40123")
                                 .build(),
                         STREAM_ID);
 
@@ -93,6 +95,7 @@ public class AudioPublisher
                                 .media("udp")
                                 .reliable(TRUE)
                                 .controlEndpoint("ec2-34-212-31-216.us-west-2.compute.amazonaws.com:40124")
+                                //.controlEndpoint("192.168.0.104:40124")
                                 .controlMode("dynamic")
                                 //.endpoint("192.168.0.110:8000")
                                 .endpoint("0.0.0.0:8000")
@@ -184,7 +187,7 @@ public class AudioPublisher
         try {
             for (Mixer.Info info : mixers) {
                 System.out.println(info.toString() + " mixer description: " + info.getDescription());
-                if (info.getName().contains("Pixel USB-C")) {
+                if (info.getName().contains(MIXER_STRING)) {
                     micMixer = getMixer(info);
                     Line.Info[] lineInfos = micMixer.getTargetLineInfo();
                     if (lineInfos.length >= 1 && lineInfos[0].getLineClass().equals(TargetDataLine.class)) {//Only prints out info if it is a Microphone
